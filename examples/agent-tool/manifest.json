@@ -1,0 +1,11 @@
+{
+  "id": "food",
+  "name": "外卖点单",
+  "description": "让该伙伴在你的美团上像人一样看历史订单、搜店、看菜单（操作你家那台手机；当前只读不下单）。",
+  "icon": "utensils",
+  "category": "utility",
+  "badge": "custom",
+  "tools": [
+    "takeout"
+  ]
+}

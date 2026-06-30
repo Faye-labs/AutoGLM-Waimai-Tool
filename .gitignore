@@ -1,0 +1,14 @@
+# secrets & local config
+.env
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# scratch / screenshots
+*.png
+*.xml
+/tmp/

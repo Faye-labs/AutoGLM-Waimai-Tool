@@ -1,0 +1,21 @@
+AutoGLM-Waimai-Tool
+Copyright 2026 Faye-labs
+
+本项目是 Open-AutoGLM 生态下的衍生工具(downstream),在其之上构建,
+运行时依赖并调用以下项目/服务:
+
+- Open-AutoGLM  (https://github.com/zai-org/Open-AutoGLM)
+  手机 GUI Agent 框架,Apache License 2.0;配套模型 AutoGLM-Phone(MIT)。
+  本项目通过它执行手机端的导航与动作(截图→理解→点击/滑动/输入)。
+  注意:本仓库不内置/不再分发 Open-AutoGLM 源码,使用时请按 DEPLOYMENT.md 单独 clone。
+
+- 智谱 BigModel API  (https://open.bigmodel.cn)
+  glm-4v-flash(屏幕→markdown 表格识别)、glm-ocr(兜底文本识别)、autoglm-phone(导航)。
+
+- ADB Keyboard  (https://github.com/senzhk/ADBKeyBoard)
+  设备端中文输入法(部署时安装到手机,Apache-2.0)。
+
+致谢同生态的相关项目(本项目为独立实现,设计上有参考/对照):
+- AutoGLM-GUI            https://github.com/suyiiyii/AutoGLM-GUI
+- Open-AutoGLM-Hybrid    https://github.com/xietao778899-rgb/Open-AutoGLM-Hybrid
+- Open-AutoGLM iOS (PR)  https://github.com/zai-org/Open-AutoGLM/pull/156

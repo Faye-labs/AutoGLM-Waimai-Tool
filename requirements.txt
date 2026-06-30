@@ -1,0 +1,7 @@
+# AutoGLM-Waimai-Tool 自身依赖(很轻)
+openai>=2.9.0     # 调智谱 BigModel(OpenAI 兼容)出表格识别
+Pillow>=10.0.0    # 截图相似度比对(到底检测)
+requests>=2.31.0  # glm-ocr 兜底 + agent_client 反向通道
+
+# 注意:导航执行依赖 Open-AutoGLM(单独 clone,见 DEPLOYMENT.md),不在此 requirements 内。
+# adb 需在 PATH(Android platform-tools)。
