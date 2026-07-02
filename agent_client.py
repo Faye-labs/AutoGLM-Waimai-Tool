@@ -25,9 +25,12 @@ import bridge  # 复用 food_read_history / food_search / food_open_shop
 FRAMEWORK_URL = os.environ.get("FRAMEWORK_URL", "").rstrip("/")
 TOKEN = os.environ.get("FOOD_BRIDGE_TOKEN", "")
 BIGMODEL_KEY = os.environ.get("BIGMODEL_API_KEY", "")
-# WiFi ADB 目标(如 <手机IP>:5555)。设了就在每次干活前幂等 adb connect 一下,
-# WiFi 掉了自动重连;USB 用法留空即可。
+# WiFi ADB 目标(如 <手机IP>:5555)。设了就:①把 ANDROID_SERIAL 锁到该设备,
+# 所有 adb 命令固定打到它(USB 也插着时不再"more than one device"歧义);
+# ②每次干活前幂等 adb connect 一下,WiFi 掉了自动重连。USB 单设备用法留空即可。
 ADB_TARGET = os.environ.get("FOOD_BRIDGE_ADB_TARGET", "")
+if ADB_TARGET:
+    os.environ["ANDROID_SERIAL"] = ADB_TARGET   # 子进程 adb 调用继承,全部锁定此设备
 
 POLL_TIMEOUT = 35   # 略大于服务端 25s 挂起,留余量
 RETRY_SLEEP = 4

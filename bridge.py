@@ -361,28 +361,59 @@ def food_checkout(api_key: str) -> dict:
     真花钱!安全靠免密额度上限:额度内自动完成;超额手机会弹密码/指纹→AI 停手报警让 Faye 人工。
     """
     _wake()
-    if not uia.tap_text_anchor("去结算"):
-        return {"ok": False, "error": "没找到“去结算”按钮(购物车可能是空的,或当前不在店内)。"}
-    time.sleep(2.0)  # 等确认订单页加载
-    _navigate(
-        "现在在“确认订单”页,你要完成下单支付。按顺序做,遇到挡路的必选项一律选一个有效选项让订单能继续:\n"
-        "① 如果有“美团红包/红包”那一行,点进去,**选中能使用的、面额最大的那个红包**,再返回确认页"
-        "(不用问,直接选最大可用的)。\n"
-        "② 如果有“餐具/餐具份数”那一项,点它,**选“需要餐具”(或按份数选适量),绝对不要选“无需餐具/不需要餐具”**。\n"
-        "③ 如果还有别的必选项(有的店要求选口味、是否同意某条款等,每家不同),"
-        "**任选一个能让订单继续下去的有效选项选上,不要留空、不要卡住**。\n"
-        "④ 核对合计金额,点“提交订单”/“去支付”/“极速支付”完成支付——已开通免密,额度内自动扣款完成。\n"
-        "⑤ 若点提交/支付后又弹出餐具/必选(没选完),回去把它选上(餐具选需要),再继续提交。\n"
-        "⑥ **如果弹出要输入密码或指纹(超过免密额度),立刻停手、不要继续**,在结果里说明“需要本人手机确认支付”。\n"
-        "完成后显示下单结果(成功页或仍停在的页面)。",
-        api_key,
-        allow_sensitive=True,
-    )
-    time.sleep(2.0)
-    shot = _adb_screenshot()
-    result = ocr_table(shot, "cart", api_key)
-    os.remove(shot)
-    return result
+    # 先看结算栏状态:有菜没选必选品时,结算按钮会变成“未点必选品/未选必选品”,不能直接去结算。
+    nodes = uia.dump_nodes()
+    must = next((n for n in nodes
+                 if any(k in (n.get("text") or "") for k in ("必选品", "未点必选", "未选必选", "选好必选"))), None)
+    if must:
+        uia.tap_center(must)   # 点它跳到需要选必选品的地方
+        time.sleep(1.8)
+        body = _shot_ocr(api_key, "generic")
+        return {"ok": True, "text":
+                "[下单被拦:购物车里有菜还没选“必选品”(必选口味/规格/加料等)。已跳到需要选择的地方。"
+                "请用 takeout(act=选规格, options=...) 选好必选项,再重新 takeout(act=下单)。以下是需要选的内容:]\n" + body}
+    # 状态自适应:可能在购物车(需点去结算),也可能已在确认订单页(直接选红包+支付)。
+    def _present(ns, *keys):
+        return any(any(k in (n.get("text") or "") for k in keys) for n in ns)
+
+    on_confirm = _present(nodes, "极速支付", "提交订单", "去支付", "美团红包", "确认订单")
+    if not on_confirm:
+        if not uia.tap_text_anchor("去结算"):
+            body = _shot_ocr(api_key, "cart")
+            return {"ok": False, "text": body,
+                    "error": "没点成“去结算”(可能购物车为空、未达起送价、或有其它拦截)。以上是当前页面,请据此判断下一步。"}
+        time.sleep(2.2)
+        nodes = uia.dump_nodes()
+
+    # —— 到这里应在“确认订单”页 ——
+    # ① 红包:uia 确定性点开“美团红包”行,再让视觉选最大可用红包并返回(选择子页可能自绘)
+    hb = next((n for n in nodes if "美团红包" in (n.get("text") or "") and n["clickable"]), None) \
+        or next((n for n in nodes if "红包可用" in (n.get("text") or "") and n["clickable"]), None) \
+        or next((n for n in nodes if "美团红包" in (n.get("text") or "")), None)
+    if hb:
+        uia.tap_center(hb)
+        time.sleep(1.5)
+        _navigate("这是红包/优惠券选择页。选中**面额最大的、可用的**那个红包(点它打上勾),"
+                  "然后点“确定/完成/使用”返回上一页。**不要支付、不要提交订单**,只选红包。", api_key)
+        time.sleep(1.5)
+
+    # ② 餐具/其它必选(若确认页上还有没选的):视觉补一刀,不支付
+    #    (多数情况餐具已默认“需要”,此步通常 no-op)
+    # ③ 支付:uia 确定性点“极速支付/提交订单/去支付”(免密额度内自动完成;超额弹密码=停手)
+    time.sleep(0.5)
+    paid_btn = None
+    for label in ("极速支付", "提交订单", "去支付"):
+        if uia.tap_text_anchor(label, max_scrolls=2):
+            paid_btn = label
+            break
+    time.sleep(2.5)  # 等支付/结果页
+    body = _shot_ocr(api_key, "cart")
+    if not paid_btn:
+        return {"ok": False, "text": body,
+                "error": "没找到支付按钮(极速支付/提交订单)。以上是当前页面,请据此判断(可能红包页没返回,或需人工)。"}
+    if any(k in body for k in ("密码", "指纹", "输入支付")):
+        return {"ok": False, "text": body, "error": "支付需要本人验证(可能超过免密额度),请在手机上确认。"}
+    return {"ok": True, "text": "[已点“" + paid_btn + "”完成下单(免密额度内)。以下是结果页:]\n" + body}
 
 
 _CATS = {"美食", "甜品饮品", "超市便利"}

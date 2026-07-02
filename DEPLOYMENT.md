@@ -58,10 +58,12 @@ adb shell settings put global animator_duration_scale 0
   adb connect <手机IP>:5555              # 之后可拔 USB
   adb devices                            # 确认只剩 <手机IP>:5555 一个设备
   ```
-  并在 `.env` 设 `FOOD_BRIDGE_ADB_TARGET=<手机IP>:5555`,`agent_client` 会自动重连。
+  并在 `.env` 设 `FOOD_BRIDGE_ADB_TARGET=<手机IP>:5555`。`agent_client` 会:①把 `ANDROID_SERIAL`
+  锁到该设备(**USB 也插着充电时不会 "more than one device" 歧义**);②每次干活前幂等重连、WiFi 掉了自动恢复。
   建议同时开"充电时保持唤醒":`adb shell settings put global stay_on_while_plugged_in 3`。
 
-  ⚠️ USB 和 WiFi **同时连**会让 adb "more than one device" 报错——只保留一个。
+  > 多设备提示:`agent_client` 靠 `ANDROID_SERIAL` 消歧;若你直接跑 `bridge.py`(命令行),
+  > 请自行 `export ANDROID_SERIAL=<手机IP>:5555`(或只连一个设备),否则多设备会报 "more than one device"。
 
 ## 5. 美团 App 前置（手机上做一次）
 
